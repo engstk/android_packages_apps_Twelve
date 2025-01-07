@@ -47,6 +47,8 @@ android {
             )
 
             signingConfig = signingConfigs.getByName("debug")
+
+            applicationIdSuffix = ".ci"
         }
 
         debug {
