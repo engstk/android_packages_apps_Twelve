@@ -15,15 +15,6 @@ runs:
       shell: bash
       run: ./gradlew assembleRelease
 
-    - name: Generate Android.bp
-      shell: bash
-      run: |
-        ./gradlew app:generateBp
-        if [[ ! -z $(git status -s) ]]; then
-          git status
-          exit -1
-        fi
-
     - name: Get short Git commit hash
       shell: bash
       run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
