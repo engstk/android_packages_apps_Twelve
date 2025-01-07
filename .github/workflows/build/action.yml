@@ -24,7 +24,16 @@ runs:
           exit -1
         fi
 
-    - uses: actions/upload-artifact@v4
+    - name: Get short Git commit hash
+      shell: bash
+      run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+    - name: Rename APK
+      shell: bash
+      run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Twelve-CI_${{ env.commit_hash }}.apk
+
+    - name: Upload the renamed APK as an artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: app-release.apk
-        path: app/build/outputs/apk/release/app-release.apk
+        name: Twelve-CI_${{ env.commit_hash }}.apk
+        path: app/build/outputs/apk/release/Twelve-CI_${{ env.commit_hash }}.apk
