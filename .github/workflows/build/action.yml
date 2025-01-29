@@ -41,7 +41,7 @@ runs:
         git push origin "$VERSION"
 
     - name: Create Release on GitHub (No token)
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
         tag_name: "v1.0.${{ github.run_number }}"
