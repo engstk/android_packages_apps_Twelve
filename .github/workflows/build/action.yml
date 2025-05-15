@@ -1,4 +1,15 @@
-name: build
+name: Build and Sign APK
+
+inputs:
+  P12_BASE64:
+    description: Base64 encoded .p12 keystore
+    required: true
+  P12_PASSWORD:
+    description: Password for .p12 keystore
+    required: true
+  P12_ALIAS:
+    description: Key alias in the .p12 keystore
+    required: true
 
 runs:
   using: composite
@@ -18,7 +29,7 @@ runs:
     - name: Decode signing key
       shell: bash
       run: |
-        echo "${{ secrets.P12_BASE64 }}" | base64 -d > signing_key.p12
+        echo "${{ inputs.P12_BASE64 }}" | base64 -d > signing_key.p12
 
     - name: Sign APK
       shell: bash
@@ -26,9 +37,9 @@ runs:
         apksigner sign \
           --ks signing_key.p12 \
           --ks-type PKCS12 \
-          --ks-key-alias "${{ secrets.P12_ALIAS }}" \
-          --ks-pass pass:${{ secrets.P12_PASSWORD }} \
-          --key-pass pass:${{ secrets.P12_PASSWORD }} \
+          --ks-key-alias "${{ inputs.P12_ALIAS }}" \
+          --ks-pass pass:${{ inputs.P12_PASSWORD }} \
+          --key-pass pass:${{ inputs.P12_PASSWORD }} \
           --out app/build/outputs/apk/release/app-release-signed.apk \
           app/build/outputs/apk/release/app-release.apk
 
