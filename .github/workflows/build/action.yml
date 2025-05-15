@@ -42,7 +42,7 @@ runs:
           --ks-pass pass:${{ inputs.P12_PASSWORD }} \
           --key-pass pass:${{ inputs.P12_PASSWORD }} \
           --out app/build/outputs/apk/release/app-release-signed.apk \
-          app/build/outputs/apk/release/app-release.apk
+          app/build/outputs/apk/release/app-release-unsigned.apk
 
     - name: Rename APK
       shell: bash
