@@ -34,7 +34,8 @@ runs:
     - name: Sign APK
       shell: bash
       run: |
-        apksigner sign \
+        BUILD_TOOLS=$(find $ANDROID_SDK_ROOT/build-tools -type d -name '3*' | sort -V | tail -n 1)
+        "$BUILD_TOOLS/apksigner" sign \
           --ks signing_key.p12 \
           --ks-type PKCS12 \
           --ks-key-alias "${{ inputs.P12_ALIAS }}" \
