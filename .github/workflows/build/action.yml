@@ -15,10 +15,27 @@ runs:
       shell: bash
       run: ./gradlew assembleRelease
 
+    - name: Decode signing key
+      shell: bash
+      run: |
+        echo "${{ secrets.P12_BASE64 }}" | base64 -d > signing_key.p12
+
+    - name: Sign APK
+      shell: bash
+      run: |
+        apksigner sign \
+          --ks signing_key.p12 \
+          --ks-type PKCS12 \
+          --ks-key-alias "${{ secrets.P12_ALIAS }}" \
+          --ks-pass pass:${{ secrets.P12_PASSWORD }} \
+          --key-pass pass:${{ secrets.P12_PASSWORD }} \
+          --out app/build/outputs/apk/release/app-release-signed.apk \
+          app/build/outputs/apk/release/app-release.apk
+
     - name: Rename APK
       shell: bash
       run: |
-        mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
+        mv app/build/outputs/apk/release/app-release-signed.apk app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
 
     - name: Upload the renamed APK as an artifact
       uses: actions/upload-artifact@v4
