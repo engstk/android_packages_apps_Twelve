@@ -131,16 +131,16 @@ class JellyfinDataSource(
             .setTitle(name)
             .setType(Audio.Type.MUSIC)
             .setDurationMs(runTimeTicks?.let { it / 10000 })
-            .setArtistUri(getArtistUri(id.toString()))
+            .setArtistUri(getArtistUri(artistItems?.firstOrNull()?.id.toString()))
             .setArtistName(artists?.firstOrNull())
-            .setAlbumUri(getAlbumUri(id.toString()))
+            .setAlbumUri(getAlbumUri(albumId.toString()))
             .setAlbumTitle(album)
             .setDiscNumber(parentIndexNumber)
             .setTrackNumber(indexNumber)
             .setGenreUri(getGenreUri(id.toString()))
             .setGenreName(genres?.firstOrNull())
             .setYear(productionYear)
-            .setIsFavorite(isFavorite == true)
+            .setIsFavorite(userData?.isFavorite == true)
             .apply {
                 albumId?.let { albumId ->
                     setThumbnail(
@@ -205,6 +205,10 @@ class JellyfinDataSource(
 
         fun onPlaylistsChanged() {
             playlistsChanged.value = Any()
+        }
+
+        fun onFavoritesChanged() {
+            favoritesChanged.value = Any()
         }
     }
 
@@ -283,6 +287,7 @@ class JellyfinDataSource(
                 startsWith(audiosUri.toString()) -> MediaType.AUDIO
                 startsWith(genresUri.toString()) -> MediaType.GENRE
                 startsWith(playlistsUri.toString()) -> MediaType.PLAYLIST
+                startsWith(favoritesUri.toString()) -> MediaType.PLAYLIST
                 else -> null
             }
         }?.let {
@@ -363,10 +368,12 @@ class JellyfinDataSource(
         }
     }
 
-    override fun audio(audioUri: Uri) = providersManager.mapWithInstanceOf(audioUri) {
-        val id = UUID.fromString(audioUri.lastPathSegment!!)
-        client.getAudio(id).map {
-            it.toMediaItemAudio()
+    override fun audio(audioUri: Uri) = providersManager.flatMapWithInstanceOf(audioUri) {
+        favoritesChanged.mapLatest {
+            val id = UUID.fromString(audioUri.lastPathSegment!!)
+            client.getAudio(id).map {
+                it.toMediaItemAudio()
+            }
         }
     }
 
@@ -440,7 +447,7 @@ class JellyfinDataSource(
         providersManager.flatMapWithInstanceOf(audioUri) {
             combine(
                 favoritesChanged.mapLatest {
-                    val isFavorite = client.getAudio(audioId).getOrNull()?.isFavorite
+                    val isFavorite = client.getAudio(audioId).getOrNull()?.userData?.isFavorite
                     favoritesPlaylist to (isFavorite == true)
                 },
                 playlistsChanged.mapLatest {
@@ -551,6 +558,8 @@ class JellyfinDataSource(
         when (isFavorite) {
             true -> client.addToFavorites(UUID.fromString(audioUri.lastPathSegment!!))
             false -> client.removeFromFavorites(UUID.fromString(audioUri.lastPathSegment!!))
+        }.map {
+            onFavoritesChanged()
         }
     }
 
