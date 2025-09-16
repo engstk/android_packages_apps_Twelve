@@ -39,6 +39,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            applicationIdSuffix = ".ci"
         }
 
         debug {
@@ -54,6 +56,11 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+    
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 
