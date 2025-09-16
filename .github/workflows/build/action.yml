@@ -1,4 +1,15 @@
-name: build
+name: Build and Sign APK
+
+inputs:
+  P12_BASE64:
+    description: Base64 encoded .p12 keystore
+    required: true
+  P12_PASSWORD:
+    description: Password for .p12 keystore
+    required: true
+  P12_ALIAS:
+    description: Key alias in the .p12 keystore
+    required: true
 
 runs:
   using: composite
@@ -13,18 +24,53 @@ runs:
 
     - name: Build with Gradle
       shell: bash
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleRelease
 
-    - name: Generate Android.bp
+    - name: Decode signing key
       shell: bash
       run: |
-        ./gradlew app:generateBp
-        if [[ ! -z $(git status -s) ]]; then
-          git status
-          exit -1
-        fi
+        echo "${{ inputs.P12_BASE64 }}" | base64 -d > signing_key.p12
 
-    - uses: actions/upload-artifact@v4
+    - name: Sign APK
+      shell: bash
+      run: |
+        BUILD_TOOLS=$(find $ANDROID_SDK_ROOT/build-tools -type d -name '3*' | sort -V | tail -n 1)
+        "$BUILD_TOOLS/apksigner" sign \
+          --ks signing_key.p12 \
+          --ks-type PKCS12 \
+          --ks-key-alias "${{ inputs.P12_ALIAS }}" \
+          --ks-pass pass:${{ inputs.P12_PASSWORD }} \
+          --key-pass pass:${{ inputs.P12_PASSWORD }} \
+          --out app/build/outputs/apk/release/app-release-signed.apk \
+          app/build/outputs/apk/release/app-release-unsigned.apk
+
+    - name: Rename APK
+      shell: bash
+      run: |
+        mv app/build/outputs/apk/release/app-release-signed.apk app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
+
+    - name: Upload the renamed APK as an artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: app-debug.apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: Twelve-CI_v1.0.${{ github.run_number }}.apk
+        path: app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
+
+    - name: Set up Git
+      shell: bash
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+
+    - name: Create Git tag
+      id: tag
+      shell: bash
+      run: |
+        VERSION="v1.0.${{ github.run_number }}"
+        git tag "$VERSION"
+        git push origin "$VERSION"
+
+    - name: Create Release on GitHub (No token)
+      uses: softprops/action-gh-release@v2
+      with:
+        files: app/build/outputs/apk/release/Twelve-CI_v1.0.${{ github.run_number }}.apk
+        tag_name: "v1.0.${{ github.run_number }}"
